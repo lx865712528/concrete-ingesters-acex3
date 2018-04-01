@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>edu.bit.nlp</groupId>
+    <groupId>io.github.lx865712528</groupId>
     <artifactId>concrete-ingesters-acex3</artifactId>
     <version>1.0-SNAPSHOT</version>
     <build>
@@ -20,6 +20,26 @@
             </plugin>
         </plugins>
     </build>
+
+    <parent>
+        <groupId>org.sonatype.oss</groupId>
+        <artifactId>oss-parent</artifactId>
+        <version>7</version>
+    </parent>
+
+    <licenses>
+        <license>
+            <name>GNU General Public License, Version 3.0</name>
+            <url>https://www.gnu.org/licenses/gpl.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <url>https://github.com/lx865712528/concrete-ingesters-acex3</url>
+        <connection>git@github.com:lx865712528/concrete-ingesters-acex3.git</connection>
+        <developerConnection>https://github.com/lx865712528</developerConnection>
+    </scm>
 
     <developers>
         <developer>
