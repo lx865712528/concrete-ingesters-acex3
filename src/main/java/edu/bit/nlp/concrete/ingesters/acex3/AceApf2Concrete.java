@@ -38,6 +38,7 @@ public class AceApf2Concrete {
     private int numEntMentions = 0;
     private int numEves = 0;
     private int numEveMentions = 0;
+    private int numEveMentionRoles = 0;
 
     /**
      * Reads an ACE .apf.xml file and its corresponding .sgm file and writes out a
@@ -239,6 +240,7 @@ public class AceApf2Concrete {
                     EntityMention aEnm = a2cEntityMentions.get(aEmArg.getContent());
                     cEmArg.setEntityMentionId(aEnm.getUuid());
                     cEm.addToArgumentList(cEmArg);
+                    numEveMentionRoles++;
                 }
 
                 cSms.addToMentionList(cEm);
@@ -262,14 +264,6 @@ public class AceApf2Concrete {
             eves.add(aEm.getParent());
         }
         return eves;
-    }
-
-    private static Set<AceRelation> getAllRelations(AceDocument apfDoc) {
-        Set<AceRelation> rels = new HashSet<>();
-        for (AceRelationMention aRm : apfDoc.getRelationMentions().values()) {
-            rels.add(aRm.getParent());
-        }
-        return rels;
     }
 
     private TokenRefSequence matchToTokens(AceCharSeq aSpan, Communication comm, boolean logMismatch) {
@@ -443,7 +437,7 @@ public class AceApf2Concrete {
             Path sgmPath = toSgmFile(aceApfPath);
             Path commPath = Paths.get(commFile);
             a2c.aceApfFile2CommFile(aceApfPath, sgmPath, commPath);
-            log.info(String.format("#entities=%d #e-mentions=%d #events=%d #eve-mentions=%d", a2c.numEnts, a2c.numEntMentions, a2c.numEves, a2c.numEveMentions));
+            log.info(String.format("#entities=%d #e-mentions=%d #events=%d #eve-mentions=%d #eve-mention-roles=%d", a2c.numEnts, a2c.numEntMentions, a2c.numEves, a2c.numEveMentions, a2c.numEveMentionRoles));
         } else {
             // Process matching files in a directory.
             String apfPrefix = args[0];
@@ -461,8 +455,8 @@ public class AceApf2Concrete {
                 Path commFile = outDir.resolve(sgmFile.getFileName().toString().replace(".sgm", ".comm"));
                 a2c.aceApfFile2CommFile(aceApfFile, sgmFile, commFile);
             }
-            log.info(String.format("#entities=%d #e-mentions=%d #events=%d #eve-mentions=%d", a2c.numEnts,
-                    a2c.numEntMentions, a2c.numEves, a2c.numEveMentions));
+            log.info(String.format("#entities=%d #e-mentions=%d #events=%d #eve-mentions=%d #eve-mention-roles=%d", a2c.numEnts,
+                    a2c.numEntMentions, a2c.numEves, a2c.numEveMentions, a2c.numEveMentionRoles));
         }
     }
 
