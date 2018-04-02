@@ -1,12 +1,10 @@
 package edu.bit.nlp.concrete.ingesters.acex3;
 
-
 import edu.jhu.hlt.concrete.*;
 import edu.jhu.hlt.concrete.UUID;
 import edu.jhu.hlt.concrete.communications.WritableCommunication;
 import edu.jhu.hlt.concrete.miscommunication.MiscommunicationException;
 import edu.jhu.hlt.concrete.miscommunication.tokenized.CachedTokenizationCommunication;
-import edu.jhu.hlt.concrete.util.InvalidUUIDException;
 import edu.jhu.hlt.concrete.uuid.AnalyticUUIDGeneratorFactory;
 import edu.jhu.prim.set.IntHashSet;
 import edu.jhu.prim.tuple.ComparableTriple;
@@ -56,7 +54,7 @@ public class AceApf2Concrete {
      * Reads an ACE .apf.xml file and its corresponding .sgm file and gets a
      * Concrete communication.
      *
-     * @throws InvalidUUIDException
+     * @throws Exception
      */
     public Communication aceApfFile2Comm(Path apfFile, Path sgmFile) throws Exception {
         // Get the .sgm file as a Communication.
@@ -213,17 +211,16 @@ public class AceApf2Concrete {
         for (AceEvent aEve : getAllEvents(apfDoc)) {
             Situation cEve = new Situation();
             cEve.setUuid(g.next());
-            cEve.setSituationType("STATE");
+            cEve.setSituationType("EVENT");
             cEve.setSituationKind(getTypeSubtype(aEve));
             // TODO: The Stanford objects have parsed the <event_mention_argument/> tags
             cEve.setMentionIdList(new ArrayList<UUID>());
 
             for (int m = 0; m < aEve.getMentionCount(); m++) {
                 AceEventMention aEm = aEve.getMention(m);
-
-                SituationMention cEm = new SituationMention();
-                cEm.setUuid(g.next());
-                cEm.setSituationType("STATE");
+                List<MentionArgument> cEmArgList = new ArrayList<MentionArgument>();
+                SituationMention cEm = new SituationMention(g.next(), cEmArgList);
+                cEm.setSituationType("EVENT");
                 cEm.setSituationKind(getTypeSubtype(aEm.getParent()));
                 try {
                     TokenRefSequence cEmExt = matchToTokens(aEm.getExtent(), comm, false);
@@ -235,29 +232,15 @@ public class AceApf2Concrete {
                     log.warn("Skipping event mention token span: " + e.getMessage());
                 }
 
-//                System.out.println(aEm.getParent().getType() + "$$" + aEm.getParent().getSubtype());
-//                System.out.println("Trigger is: " + aEm.getAnchor().getText());
-//                System.out.println(aEm.getExtent().getText());
-                int emptyArgs = 0;
-                if (aEm.getArgs().isEmpty()) {
+                for (AceEventMentionArgument aEmArg : aEm.getArgs()) {
                     MentionArgument cEmArg = new MentionArgument();
-                    cEmArg.setRole("EMPTY");
-                    cEmArg.setEntityMentionId(new UUID("00000"));
+                    assert aEmArg.getRole() != null;
+                    cEmArg.setRole(aEmArg.getRole());
+                    EntityMention aEnm = a2cEntityMentions.get(aEmArg.getContent());
+                    cEmArg.setEntityMentionId(aEnm.getUuid());
                     cEm.addToArgumentList(cEmArg);
-                    emptyArgs += 1;
-                } else {
-                    for (AceEventMentionArgument aEmArg : aEm.getArgs()) {
-//                        System.out.println(aEmArg.getRole());
-//                        System.out.println(aEmArg.getContent().getExtent().getText());
-                        MentionArgument cEmArg = new MentionArgument();
-                        assert aEmArg.getRole() != null;
-                        cEmArg.setRole(aEmArg.getRole());
-                        EntityMention aEnm = a2cEntityMentions.get(aEmArg.getContent());
-                        cEmArg.setEntityMentionId(aEnm.getUuid());
-                        cEm.addToArgumentList(cEmArg);
-                    }
                 }
-//                System.out.println(cEm.getArgumentListSize() - emptyArgs);
+
                 cSms.addToMentionList(cEm);
                 cEve.addToMentionIdList(cEm.getUuid());
                 // TODO: The justification and mention ID list seem to be redundant.
