@@ -1,18 +1,16 @@
 package edu.stanford.nlp.ie.machinereading.domains.ace.reader;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.xml.parsers.ParserConfigurationException;
-
+import edu.stanford.nlp.ie.machinereading.common.DomReader;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
-import edu.stanford.nlp.ie.machinereading.common.DomReader;
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * DOM reader for an ACE specification.
@@ -44,6 +42,18 @@ public class AceDomReader extends DomReader {
     }
 
     /**
+     * Extracts a trigger as an entity mention
+     */
+    private static AceEntityMention parseTriggerAsEM(Node node) {
+        String id = getAttributeValue(node, "ID") + "-TRIGGER-0";
+        String type = "TRIGGER";
+        String ldctype = "TRIGGER";
+        AceCharSeq extent = parseCharSeq(getChildByName(node, "anchor"));
+        AceCharSeq head = parseCharSeq(getChildByName(node, "anchor"));
+        return (new AceEntityMention(id, type, ldctype, extent, head));
+    }
+
+    /**
      * Extracts info about one relation mention
      */
     private static AceRelationMention parseRelationMention(Node node,
@@ -57,16 +67,16 @@ public class AceDomReader extends DomReader {
 
         // find the mention args
         List<Node> args = getChildrenByName(node, "relation_mention_argument");
-        for(Node arg: args){
+        for (Node arg : args) {
             String role = getAttributeValue(arg, "ROLE");
             String refid = getAttributeValue(arg, "REFID");
             AceEntityMention am = doc.getEntityMention(refid);
 
-            if(am != null){
+            if (am != null) {
                 am.addRelationMention(mention);
-                if(role.equalsIgnoreCase("arg-1")){
+                if (role.equalsIgnoreCase("arg-1")) {
                     mention.getArgs()[0] = new AceRelationMentionArgument(role, am);
-                } else if(role.equalsIgnoreCase("arg-2")){
+                } else if (role.equalsIgnoreCase("arg-2")) {
                     mention.getArgs()[1] = new AceRelationMentionArgument(role, am);
                 } else {
                     throw new RuntimeException("Invalid relation mention argument role: " + role);
@@ -90,6 +100,15 @@ public class AceDomReader extends DomReader {
         // create the mention
         AceEventMention mention = new AceEventMention(id, extent, anchor);
 
+        // append trigger from entity
+        AceEntityMention trigger = doc.getEntityMention(id + "-TRIGGER-0");
+        if (trigger != null) {
+            trigger.addEventMention(mention);
+            mention.addArg(trigger, "TRIGGER");
+        } else {
+            System.out.println("Trigger not found for event-" + id);
+        }
+
         // find the mention args
         List<Node> args = getChildrenByName(node, "event_mention_argument");
         for (Node arg : args) {
@@ -97,18 +116,20 @@ public class AceDomReader extends DomReader {
             String refid = getAttributeValue(arg, "REFID");
             AceEntityMention am = doc.getEntityMention(refid);
 
-            if(am != null){
+            if (am != null) {
                 am.addEventMention(mention);
                 mention.addArg(am, role);
             } else {
                 System.out.println(refid);
             }
         }
+
         return mention;
     }
 
     /**
      * Parses one ACE specification
+     *
      * @return Simply displays the events to stdout
      */
     public static AceDocument parseDocument(File f)
@@ -128,8 +149,7 @@ public class AceDomReader extends DomReader {
         // read all entities
         //
         NodeList entities = document.getElementsByTagName("entity");
-        int entityCount = 0;
-        for(int i = 0; i < entities.getLength(); i ++){
+        for (int i = 0; i < entities.getLength(); i++) {
             Node node = entities.item(i);
 
             //
@@ -153,50 +173,37 @@ public class AceDomReader extends DomReader {
                 entity.addMention(mention);
                 aceDoc.addEntityMention(mention);
             }
-
-            entityCount++;
         }
-        //System.err.println("Parsed " + entityCount + " XML entities.");
 
         //
-        // read all relations
+        // read all event triggers as entities and append them into arguments
         //
-        NodeList relations = document.getElementsByTagName("relation");
-        for(int i = 0; i < relations.getLength(); i ++){
-            Node node = relations.item(i);
+        NodeList triggers = document.getElementsByTagName("event_mention");
+        for (int i = 0; i < triggers.getLength(); i++) {
+            Node node = triggers.item(i);
 
             //
-            // the relation type, subtype, tense, and modality
+            // the entity type and subtype
             //
-            String id = getAttributeValue(node, "ID");
-            String type = getAttributeValue(node, "TYPE");
-            String subtype = getAttributeValue(node, "SUBTYPE");
-            String modality = getAttributeValue(node, "MODALITY");
-            String tense = getAttributeValue(node, "TENSE");
+            String id = getAttributeValue(node, "ID") + "-TRIGGER";
+            String type = "TRIGGER";
+            String subtype = "TRIGGER";
+            String cls = "TRIGGER";
 
-            // create the relation
-            AceRelation relation = new AceRelation(id, type, subtype,
-                    modality, tense);
-            aceDoc.addRelation(relation);
+            // create the entity
+            AceEntity trigger = new AceEntity(id, type, subtype, cls);
+            aceDoc.addEntity(trigger);
 
-            // XXX: fetch relation_arguments here!
-
-            // fetch all mentions of this relation
-            List<Node> mentions = getChildrenByName(node, "relation_mention");
-
-            // traverse all mentions
-            for (Node mention1 : mentions) {
-                AceRelationMention mention = parseRelationMention(mention1, aceDoc);
-                relation.addMention(mention);
-                aceDoc.addRelationMention(mention);
-            }
+            AceEntityMention mention = parseTriggerAsEM(node);
+            trigger.addMention(mention);
+            aceDoc.addEntityMention(mention);
         }
 
         //
         // read all events
         //
         NodeList events = document.getElementsByTagName("event");
-        for(int i = 0; i < events.getLength(); i ++){
+        for (int i = 0; i < events.getLength(); i++) {
             Node node = events.item(i);
 
             //
@@ -229,7 +236,7 @@ public class AceDomReader extends DomReader {
         return aceDoc;
     }
 
-    public static void main(String [] argv) throws Exception {
+    public static void main(String[] argv) throws Exception {
         if (argv.length != 1) {
             System.err.println("Usage: java AceDomReader <APF file>");
             System.exit(1);
