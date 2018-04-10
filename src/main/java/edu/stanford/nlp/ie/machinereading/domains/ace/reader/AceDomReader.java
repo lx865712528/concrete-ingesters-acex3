@@ -42,6 +42,27 @@ public class AceDomReader extends DomReader {
     }
 
     /**
+     * Extracts one timex2 mention
+     */
+    private static AceEntityMention parseTimex2Mention(Node node) {
+        String id = getAttributeValue(node, "ID");
+        String type = "TIM";
+        AceCharSeq extent = parseCharSeq(getChildByName(node, "extent"));
+        AceCharSeq head = parseCharSeq(getChildByName(node, "extent"));
+        return (new AceEntityMention(id, type, type, extent, head));
+    }
+
+    /**
+     * Extracts one value mention
+     */
+    private static AceEntityMention parseValueMention(Node node, String type) {
+        String id = getAttributeValue(node, "ID");
+        AceCharSeq extent = parseCharSeq(getChildByName(node, "extent"));
+        AceCharSeq head = parseCharSeq(getChildByName(node, "extent"));
+        return (new AceEntityMention(id, type, type, extent, head));
+    }
+
+    /**
      * Extracts a trigger as an entity mention
      */
     private static AceEntityMention parseTriggerAsEM(Node node) {
@@ -170,6 +191,84 @@ public class AceDomReader extends DomReader {
             // parse all its mentions
             for (Node mention1 : mentions) {
                 AceEntityMention mention = parseEntityMention(mention1);
+                entity.addMention(mention);
+                aceDoc.addEntityMention(mention);
+            }
+        }
+
+        //
+        // read all times
+        //
+        NodeList times = document.getElementsByTagName("timex2");
+        for (int i = 0; i < times.getLength(); i++) {
+            Node node = times.item(i);
+
+            //
+            // the entity type and subtype
+            //
+            String id = getAttributeValue(node, "ID");
+            String type = "TIM";
+            String subtype = "time";
+            String cls = "TIM";
+
+            // create the entity
+            AceEntity entity = new AceEntity(id, type, subtype, cls);
+            aceDoc.addEntity(entity);
+
+            // fetch all mentions of this entity
+            List<Node> mentions = getChildrenByName(node, "timex2_mention");
+
+            // parse all its mentions
+            for (Node mention1 : mentions) {
+                AceEntityMention mention = parseTimex2Mention(mention1);
+                entity.addMention(mention);
+                aceDoc.addEntityMention(mention);
+            }
+        }
+
+
+        //
+        // read all values
+        //
+        NodeList values = document.getElementsByTagName("value");
+        for (int i = 0; i < values.getLength(); i++) {
+            Node node = values.item(i);
+
+            //
+            // the entity type and subtype
+            //
+            String id = getAttributeValue(node, "ID");
+            String type = getAttributeValue(node, "TYPE");
+
+            if (type.equals("Numeric")) {
+                type = "NUM";
+            } else if (type.equals("Contact-Info")) {
+                type = "CTI";
+            } else if (type.equals("Crime")) {
+                type = "CRM";
+            } else if (type.equals("Job-Title")) {
+                type = "JOB";
+            } else if (type.equals("Sentence")) {
+                type = "SEN";
+            }
+
+            String subtype = type;
+            if (type.equals("NUM") || type.equals("CTI")) {
+                subtype = getAttributeValue(node, "SUBTYPE");
+            }
+
+            String cls = type;
+
+            // create the entity
+            AceEntity entity = new AceEntity(id, type, subtype, cls);
+            aceDoc.addEntity(entity);
+
+            // fetch all mentions of this entity
+            List<Node> mentions = getChildrenByName(node, "value_mention");
+
+            // parse all its mentions
+            for (Node mention1 : mentions) {
+                AceEntityMention mention = parseValueMention(mention1, type);
                 entity.addMention(mention);
                 aceDoc.addEntityMention(mention);
             }

@@ -437,7 +437,7 @@ public class AceApf2Concrete {
             Path sgmPath = toSgmFile(aceApfPath);
             Path commPath = Paths.get(commFile);
             a2c.aceApfFile2CommFile(aceApfPath, sgmPath, commPath);
-            log.info(String.format("#entities=%d #e-mentions=%d #events=%d #eve-mentions=%d #eve-mention-roles=%d", a2c.numEnts, a2c.numEntMentions, a2c.numEves, a2c.numEveMentions, a2c.numEveMentionRoles));
+            log.info(String.format("#entities=%d #e-mentions=%d #events=%d #eve-mentions=%d #eve-mention-roles=%d", a2c.numEnts, a2c.numEntMentions, a2c.numEves, a2c.numEveMentions, a2c.numEveMentionRoles - a2c.numEveMentions));
         } else {
             // Process matching files in a directory.
             String apfPrefix = args[0];
@@ -456,7 +456,7 @@ public class AceApf2Concrete {
                 a2c.aceApfFile2CommFile(aceApfFile, sgmFile, commFile);
             }
             log.info(String.format("#entities=%d #e-mentions=%d #events=%d #eve-mentions=%d #eve-mention-roles=%d", a2c.numEnts,
-                    a2c.numEntMentions, a2c.numEves, a2c.numEveMentions, a2c.numEveMentionRoles));
+                    a2c.numEntMentions, a2c.numEves, a2c.numEveMentions, a2c.numEveMentionRoles - a2c.numEveMentions));
         }
     }
 
